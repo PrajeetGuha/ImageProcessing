@@ -4,8 +4,8 @@ import subprocess
 import os
 import time
 
-real_image = 'greyscale.jpg'
-unit_program = 'kmeans_clustering.c'
+real_image = 'vertebral.jpg'
+unit_program = 'fuzzy_cmeans.c'
 output_image = 'output.jpg'
 
 img = Image.open('images/'+real_image).convert('L')
@@ -31,6 +31,6 @@ ar = np.array(arr)
 img = Image.fromarray(ar).convert('RGB')
 img.save(output_image)
 
-delete = ['a.exe','input.txt','output.txt']
+delete = ['a.exe']
 for k in delete:
     os.remove(k)

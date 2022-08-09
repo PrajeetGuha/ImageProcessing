@@ -35,7 +35,7 @@ void main(){
         }
     }
 
-    printf("The k or c value:");
+    printf("The k value:");
     scanf("%d",&k);
     printf("Enter tolerance value:");
     scanf("%f",&tolerance);

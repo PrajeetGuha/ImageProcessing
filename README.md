@@ -12,4 +12,4 @@ Image Processing techniques -
 3. Histogram Equalization
 4. Non-linear Contrast Stretching ( Logarithmic, Gama )
 5. Neigbourhood Processing
-6. Clustering Techniques ( K-means )
+6. Clustering techniques( K-means, Fuzzy C-means )

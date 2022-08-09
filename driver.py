@@ -31,6 +31,6 @@ ar = np.array(arr)
 img = Image.fromarray(ar).convert('RGB')
 img.save(output_image)
 
-delete = ['a.exe']
+delete = ['a.exe', 'input.txt', 'output.txt']
 for k in delete:
     os.remove(k)

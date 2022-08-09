@@ -5,7 +5,7 @@
 
 #define INPUT_FILE "input.txt"
 #define OUTPUT_FILE "output.txt"
-#define MEMBERSHIP_FILE "membership.txt"
+// #define MEMBERSHIP_FILE "membership.txt"
 
 int main()
 {
@@ -13,7 +13,7 @@ int main()
     // file opening and reading ad storing image in an array
     FILE *ifile = fopen(INPUT_FILE, "r");
     FILE *ofile = fopen(OUTPUT_FILE, "w+");
-    FILE *mfile = fopen(MEMBERSHIP_FILE,"w+");
+    // FILE *mfile = fopen(MEMBERSHIP_FILE,"w+");
     int size[2], var, i, j, k;
     fscanf(ifile, "%d ", &size[0]);
     fscanf(ifile, "%d\n", &size[1]);
@@ -134,15 +134,15 @@ int main()
     } while (fabs(temp_cost - cost) > tolerance);
 
     // writing to file the memberships
-    for(i = 0; i < c; i++){
-        for(j = 0; j < N; j++){
-            var = *(u + i*N + j);
-            if ( j == N - 1)
-                fprintf(mfile,"%d\n",var);
-            else
-                fprintf(mfile,"%d ",var);
-        }
-    }
+    // for(i = 0; i < c; i++){
+    //     for(j = 0; j < N; j++){
+    //         var = *(u + i*N + j);
+    //         if ( j == N - 1)
+    //             fprintf(mfile,"%d\n",var);
+    //         else
+    //             fprintf(mfile,"%d ",var);
+    //     }
+    // }
 
     int intensity_val = 255 / c;
     double maxi = 0;
@@ -165,4 +165,8 @@ int main()
                 fprintf(ofile,"%d ",var);
         }
     }
+
+    // close files
+    fclose(ifile);
+    fclose(ofile);
 }

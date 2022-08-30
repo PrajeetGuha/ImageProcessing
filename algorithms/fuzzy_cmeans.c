@@ -5,21 +5,109 @@
 
 #define INPUT_FILE "input.txt"
 #define OUTPUT_FILE "output.txt"
-// #define MEMBERSHIP_FILE "membership.txt"
+
+int **DD_array_int(int r, int c)
+{
+    int **arr = (int **)malloc(r * sizeof(int *));
+    for (int i = 0; i < r; i++)
+        arr[i] = (int *)calloc(c, sizeof(int));
+    return arr;
+}
+
+double **DD_array_double(int r, int c)
+{
+    double **arr = (double **)malloc(r * sizeof(double *));
+    for (int i = 0; i < r; i++)
+        arr[i] = (double *)calloc(c, sizeof(double));
+    return arr;
+}
+
+int *D_array(int n)
+{
+    int *arr = (int *)calloc(n, sizeof(int));
+    return arr;
+}
+
+void recalculate_membership(double **memberships, int *cluster_centers, int **image, int nr, int nc, int c, int m)
+{
+
+    double numer, denom = 0, val, maxval = 0;
+    int maxval_c = 0;
+
+    for (int i = 0; i < nr; i++)
+    {
+        for (int j = 0; j < nc; j++)
+        {
+            maxval = 0;
+            for (int k1 = 0; k1 < c; k1++)
+            {
+                numer = image[i][j] - cluster_centers[k1];
+                for (int k2 = 0; k2 < c; k2++)
+                {
+                    denom = denom + image[i][j] - cluster_centers[k2];
+                }
+                val = pow(numer / denom, 2 / (m - 1));
+                memberships[k1][i * nc + j] = val;
+                if (val > maxval)
+                {
+                    maxval_c = k1;
+                    maxval = val;
+                }
+            }
+            for (int k2 = 0; k2 < c; k2++)
+            {
+                if (k2 != maxval_c)
+                {
+                    memberships[k2][i * nc + j] = 0;
+                }
+            }
+        }
+    }
+}
+
+int *recalculate_cluster_centers(double **memberships, int **image, int c, int nr, int nc, int m)
+{
+
+    int *cluster_centers = (int *)malloc(c * sizeof(int));
+    double numer, denom, tempval;
+
+    for (int k1 = 0; k1 < c; k1++)
+    {
+        numer = 0;
+        denom = 0;
+        for (int i = 0; i < nr; i++)
+        {
+            for (int j = 0; j < nc; j++)
+            {
+                tempval = pow(memberships[k1][i * nc + j], m);
+                numer = numer + tempval * image[i][j];
+                denom = denom + tempval;
+            }
+        }
+        cluster_centers[k1] = (int)(numer / denom);
+    }
+    return cluster_centers;
+}
 
 int main()
 {
+    // declaring variables
+    int size[2], var, i, j, k, c, repeat, choose;
+    double m, convergence, tolerance, denom, numer, cost, val, tempval, temp_cost = 0;
 
-    // file opening and reading ad storing image in an array
+    // file opening
     FILE *ifile = fopen(INPUT_FILE, "r");
     FILE *ofile = fopen(OUTPUT_FILE, "w+");
-    // FILE *mfile = fopen(MEMBERSHIP_FILE,"w+");
-    int size[2], var, i, j, k;
+
+    // reading the size of the image
     fscanf(ifile, "%d ", &size[0]);
     fscanf(ifile, "%d\n", &size[1]);
+    int N = size[0] * size[1];
 
-    int *img = (int *)malloc(size[0] * size[1] * sizeof(int));
+    // creating empty image array
+    int **image = DD_array_int(size[0], size[1]);
 
+    // reading the image
     for (i = 0; i < size[0]; i++)
     {
         for (j = 0; j < size[1]; j++)
@@ -28,141 +116,81 @@ int main()
                 fscanf(ifile, "%d\n", &var);
             else
                 fscanf(ifile, "%d ", &var);
-            *(img + size[1] * i + j) = var;
+            image[i][j] = var;
         }
     }
 
-
-    int m;
+    // reading value of m
     printf("Enter value of m:");
-    scanf("%d", &m);
+    scanf("%lf", &m);
 
-    int c;
-    printf("Enter value of c:");
+    // reading number of clusters
+    printf("Enter number of clusters:");
     scanf("%d", &c);
 
+    // reading tolerance value
+    printf("Enter tolerance:");
+    scanf("%lf", &tolerance);
+
     // starting intensity value of clusters
-    double *cluster_centers = (double *)malloc(c * sizeof(double));
+    int *cluster_centers = D_array(c);
     srand(time(0));
     for (i = 0; i < c; i++)
     {
-        *(cluster_centers + i) = (double)(rand() % 256);
+        cluster_centers[i] = (int)round(rand() % 256);
     }
 
-    // initializing membership values with 1
-    int N = size[0] * size[1];
-    double *u = (double *)malloc(c * N * sizeof(double));
-    for (i = 0; i < c; i++)
+    // membership matrix
+    double **memberships = DD_array_double(c, N);
+
+    // iterative finding of membership clusters
+    repeat = 0;
+    do
     {
-        for (j = 0; j < N; j++)
-        {
-            *(u + i * N + j) = 1;
-        }
-    }
+        cost = temp_cost;
+        temp_cost = 0;
 
-    // calculate initial cost
-    double temp_cost = 0;
+        // calculate memberships
+        recalculate_membership(memberships, cluster_centers, image, size[0], size[1], c, m);
+
+        // calculating new cluster centers
+        int *temp_cluster_centers = recalculate_cluster_centers(memberships, image, c, size[0], size[1], m);
+
+        // repeating check
+        for (k = 0; k < c; k++)
+        {
+            if (abs(temp_cluster_centers[k] - cluster_centers[k]) > tolerance)
+            {
+                int *temp;
+                repeat = 1;
+                temp = cluster_centers;
+                cluster_centers = temp_cluster_centers;
+                free(temp);
+            }
+        }
+
+    } while (repeat);
+
+    // finding the cluster to which each pixel belongs and writing to files
+    fprintf(ofile, "%d %d\n", size[0], size[1]);
     for (i = 0; i < size[0]; i++)
     {
         for (j = 0; j < size[1]; j++)
         {
+
             for (k = 0; k < c; k++)
             {
-                temp_cost = temp_cost + pow((*(u + k * N + (i * size[1] + j))), m) * pow((*(img + size[1] * i + j)) - (*(cluster_centers + k)), 2);
-            }
-        }
-    }
-
-    double tolerance;
-    printf("Enter tolerance:");
-    scanf("%lf", &tolerance);
-
-    double cost, val, denom, numer, tempval;
-
-    // iterative finding of membership clusters
-    do
-    {
-        
-        cost = temp_cost;
-        temp_cost = 0;
-        // calculate memberships
-        for (i = 0; i < c; i++)
-        {
-            for (j = 0; j < N; j++)
-            {
-                val = 0;
-                for (k = 0; k < c; k++)
+                if (memberships[k][i * size[1] + j] > 0)
                 {
-                    if ((*(img + j)) - (*(cluster_centers + k)) != 0){
-                        tempval = (fabs((*(img + j)) - (*(cluster_centers + i))) / fabs((*(img + j)) - (*(cluster_centers + k))));
-                    }
-                    else{
-                        tempval = 0;
-                    }
-                    val = val +  pow(tempval, (2.0 / (m - 1)));
-                }
-                *(u + N * i + j) = val;
-            }
-        }
-
-        // calculating new cluster centers
-        for (i = 0; i < c; i++)
-        {
-            numer = 0;
-            denom = 0;
-            for (j = 0; j < N; j++)
-            {
-                numer = numer + pow((*(u + N * i + j)), m) * (*(img + j));
-                denom = denom + pow((*(u + N * i + j)), m);
-            }
-            *(cluster_centers + i) = round(numer / denom);
-        }
-
-        // calculating cost with new memberships
-        for (i = 0; i < size[0]; i++)
-        {
-            for (j = 0; j < size[1]; j++)
-            {
-                for (k = 0; k < c; k++)
-                {
-                    temp_cost = temp_cost + pow((*(u + k * N + (i * j))), m) * pow((*(img + size[1] * i + j)) - (*(cluster_centers + k)), 2);
-                }
-            }
-        }
-        break;
-
-    } while (fabs(temp_cost - cost) > tolerance);
-
-    // writing to file the memberships
-    // for(i = 0; i < c; i++){
-    //     for(j = 0; j < N; j++){
-    //         var = *(u + i*N + j);
-    //         if ( j == N - 1)
-    //             fprintf(mfile,"%d\n",var);
-    //         else
-    //             fprintf(mfile,"%d ",var);
-    //     }
-    // }
-
-    int intensity_val = 255 / c;
-    double maxi = 0;
-    int choose = 0;
-
-    // finding the cluster to which each pixel belongs and writig to files
-    for( i = 0; i < size[0]; i++){
-        for( j = 0; j < size[1]; j++ ){
-            
-            for (k = 0; k < c; k++){
-                if ( (*(u + N*k + (i * size[1] + j))) > maxi ){
-                    maxi = (*(u + N*k + (i * size[1] + j)));
                     choose = k;
+                    break;
                 }
             }
-            var = intensity_val * choose;
-            if ( j == N - 1)
-                fprintf(ofile,"%d\n",var);
+            var = cluster_centers[choose];
+            if (j == size[1] - 1)
+                fprintf(ofile, "%d\n", var);
             else
-                fprintf(ofile,"%d ",var);
+                fprintf(ofile, "%d ", var);
         }
     }
 
